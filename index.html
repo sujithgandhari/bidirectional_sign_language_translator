@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign Translator – Pipeline</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020b14;
+      --surface: #061220;
+      --card: #081828;
+      --border: rgba(0,200,255,0.15);
+      --accent: #00c8ff;
+      --green: #00ffaa;
+      --orange: #ff7b35;
+      --pink: #ff4d9e;
+      --text: #e8f4ff;
+      --muted: #6b8fa8;
+      --glow-blue: rgba(0,200,255,0.4);
+      --glow-green: rgba(0,255,170,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(0,80,160,0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0,120,80,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 60% at 60% 40%, rgba(0,40,80,0.15) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 20px 80px;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand-orb {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, var(--accent), var(--green), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 0 20px var(--glow-blue);
+      animation: spin-orb 8s linear infinite;
+    }
+
+    @keyframes spin-orb {
+      to { filter: hue-rotate(360deg); }
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .nav-pill {
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: rgba(6,18,32,0.8);
+      transition: all 0.2s;
+    }
+
+    .nav-pill:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 14px var(--glow-blue);
+    }
+
+    .nav-pill.cta {
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      border-color: transparent;
+      color: #020b14;
+      font-weight: 700;
+    }
+
+    .nav-pill.cta:hover {
+      box-shadow: 0 0 24px var(--glow-green);
+      transform: translateY(-1px);
+    }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 64px 0 48px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,200,255,0.4);
+      background: rgba(0,200,255,0.07);
+      font-size: 0.75rem;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 .gradient {
+      background: linear-gradient(90deg, var(--accent), var(--green) 50%, var(--accent));
+      background-size: 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 4s linear infinite;
+    }
+
+    @keyframes shimmer {
+      to { background-position: 200% center; }
+    }
+
+    .hero-sub {
+      max-width: 520px;
+      margin: 0 auto 32px;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    /* MODE SELECTOR */
+    .mode-selector {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .mode-btn {
+      padding: 10px 22px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mode-btn:hover, .mode-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0,200,255,0.08);
+      box-shadow: 0 0 18px rgba(0,200,255,0.2);
+    }
+
+    .mode-btn.green:hover, .mode-btn.green.active {
+      border-color: var(--green);
+      color: var(--green);
+      background: rgba(0,255,170,0.08);
+      box-shadow: 0 0 18px rgba(0,255,170,0.2);
+    }
+
+    .mode-btn.white:hover, .mode-btn.white.active {
+      border-color: rgba(255,255,255,0.5);
+      color: #fff;
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* CAMERA LAUNCH BANNER */
+    .camera-banner {
+      margin: 0 auto 40px;
+      max-width: 680px;
+      background: linear-gradient(135deg, rgba(0,200,255,0.1), rgba(0,255,170,0.08));
+      border: 1px solid rgba(0,200,255,0.3);
+      border-radius: 20px;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .camera-banner-text h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .camera-banner-text p {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .camera-launch-btn {
+      padding: 11px 24px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      border: none;
+      color: #020b14;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .camera-launch-btn:hover {
+      box-shadow: 0 0 28px var(--glow-green);
+      transform: translateY(-2px);
+    }
+
+    /* CARDS GRID */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .flow-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .flow-card:hover {
+      border-color: rgba(0,200,255,0.3);
+      box-shadow: 0 8px 40px rgba(0,200,255,0.1);
+    }
+
+    .card-header {
+      padding: 22px 22px 0;
+    }
+
+    .card-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 10px;
+      margin-bottom: 12px;
+    }
+
+    .flow-card h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 0;
+    }
+
+    /* ACCORDION TOGGLE BUTTON */
+    .steps-toggle-wrap {
+      padding: 16px 22px 4px;
+      border-top: 1px solid var(--border);
+      margin-top: 16px;
+    }
+
+    .steps-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 11px 20px;
+      border-radius: 14px;
+      cursor: pointer;
+      border: 1px solid rgba(0,200,255,0.35);
+      background: rgba(0,200,255,0.08);
+      color: var(--accent);
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      user-select: none;
+      transition: all 0.2s;
+      font-family: 'Syne', sans-serif;
+    }
+
+    .steps-toggle:hover {
+      background: rgba(0,200,255,0.16);
+      box-shadow: 0 0 20px rgba(0,200,255,0.2);
+      transform: translateY(-1px);
+    }
+
+    .steps-toggle.green {
+      border-color: rgba(0,255,170,0.35);
+      background: rgba(0,255,170,0.08);
+      color: var(--green);
+    }
+
+    .steps-toggle.green:hover {
+      background: rgba(0,255,170,0.16);
+      box-shadow: 0 0 20px rgba(0,255,170,0.2);
+    }
+
+    .toggle-chevron {
+      transition: transform 0.3s;
+      font-size: 0.75rem;
+    }
+
+    .steps-toggle.open .toggle-chevron {
+      transform: rotate(180deg);
+    }
+
+    .steps-body {
+      display: none;
+      padding: 8px 22px 22px;
+    }
+
+    .steps-body.open {
+      display: block;
+      animation: fadeDown 0.3s ease;
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 11px 13px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 8px;
+    }
+
+    .step:last-child { margin-bottom: 0; }
+
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      color: #020b14;
+    }
+
+    .step-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .step-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* BRAIN */
+    .brain-section {
+      text-align: center;
+      margin: 32px 0 28px;
+    }
+
+    .brain-orb {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      border: 2px solid rgba(0,200,255,0.3);
+      background: radial-gradient(circle at 40% 35%, rgba(0,200,255,0.2), rgba(0,255,170,0.1) 50%, transparent 70%);
+      box-shadow:
+        0 0 30px rgba(0,200,255,0.3),
+        0 0 60px rgba(0,200,255,0.15),
+        inset 0 0 30px rgba(0,200,255,0.1);
+      animation: pulse-orb 3s ease-in-out infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes pulse-orb {
+      0%,100% { box-shadow: 0 0 30px rgba(0,200,255,0.3), 0 0 60px rgba(0,200,255,0.15), inset 0 0 30px rgba(0,200,255,0.1); }
+      50% { box-shadow: 0 0 45px rgba(0,200,255,0.5), 0 0 90px rgba(0,200,255,0.25), inset 0 0 45px rgba(0,200,255,0.15); }
+    }
+
+    .brain-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .brain-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .brain-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    /* LEGEND */
+    .legend {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .leg {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .leg-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 0.76rem;
+      color: #2d4860;
+    }
+
+    @media (max-width: 700px) {
+      nav { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .hero { padding: 40px 0 32px; }
+      .camera-banner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- NAV -->
+  <nav>
+    <a href="index.html" class="brand">
+      <div class="brand-orb">🤟</div>
+      Sign Translator
+    </a>
+    <div class="nav-links">
+      <a href="login.html" class="nav-pill">Login</a>
+      <a href="signup.html" class="nav-pill cta">Get Started</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">End-to-End Sign ⇄ Text · Real-Time AI</div>
+    <h1>
+      <span class="gradient">Sign Language</span><br>Meets Intelligence
+    </h1>
+    <p class="hero-sub">
+      Bidirectional ASL/ISL translation powered by a hybrid CNN + RFC + Transformer pipeline. Bridge the gap between sign and spoken language in real time.
+    </p>
+
+    <div class="mode-selector">
+      <button class="mode-btn active" id="btn-sign" onclick="showFlow('sign')">
+        👋 Sign → Text
+      </button>
+      <button class="mode-btn green" id="btn-text" onclick="showFlow('text')">
+        💬 Text → Sign
+      </button>
+      <button class="mode-btn white" id="btn-both" onclick="showFlow('both')">
+        🔁 Both Flows
+      </button>
+    </div>
+  </div>
+
+  <!-- CAMERA BANNER -->
+  <div class="camera-banner">
+    <div class="camera-banner-text">
+      <h3>🎥 Live Translation — Ready to go</h3>
+      <p>Open the camera translator to start recognising signs in real time with LLM refinement.</p>
+    </div>
+    <a href="camera.html" class="camera-launch-btn">
+      Launch Camera ↗
+    </a>
+  </div>
+
+  <!-- CARDS -->
+  <div class="grid">
+
+    <!-- SIGN TO TEXT -->
+    <div class="flow-card" id="card-sign">
+      <div class="card-header">
+        <div class="card-label">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>
+          Sign-to-Text Recognition
+        </div>
+        <h2>👋 Sign → Text</h2>
+        <p class="card-desc">
+          Real-time recognition of ASL/ISL gestures from your camera, converted into grammatically correct text for hearing users.
+        </p>
+      </div>
+
+      <div class="steps-toggle-wrap">
+        <div class="steps-toggle" id="toggle-sign" onclick="toggleSteps('sign')">
+          <span>📋 Show Sign → Text Steps</span>
+          <span class="toggle-chevron">▼</span>
+        </div>
+      </div>
+
+      <div class="steps-body" id="steps-sign">
+        <div class="step">
+          <div class="step-num" style="background:var(--accent);">1</div>
+          <div>
+            <div class="step-title">Camera Capture</div>
+            <div class="step-desc">Mobile camera records the signer's hand and upper-body in real time at 30–60 FPS.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#00c88a;">2</div>
+          <div>
+            <div class="step-title">Preprocessing & ROI</div>
+            <div class="step-desc">Frames are resized, normalised, and Region of Interest (hands/face) is extracted via MediaPipe.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#f59e0b;">3</div>
+          <div>
+            <div class="step-title">Hybrid CNN + RFC Recognition</div>
+            <div class="step-desc">CNN extracts deep features; Random Forest Classifier predicts letters, gloss tokens, or words.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:var(--pink);">4</div>
+          <div>
+            <div class="step-title">Gloss / Intermediate Text</div>
+            <div class="step-desc">Predicted units buffer into sequences, forming raw phrases reflecting sign order and timing.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#818cf8;">5</div>
+          <div>
+            <div class="step-title">LLM Refinement</div>
+            <div class="step-desc">Transformer LLM cleans grammar, resolves context and converts gloss into fluent natural language.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#0ea5e9;">6</div>
+          <div>
+            <div class="step-title">Text / Speech Output</div>
+            <div class="step-desc">Final message is displayed as text or spoken aloud via TTS for the hearing user.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEXT TO SIGN -->
+    <div class="flow-card" id="card-text" style="display:none;">
+      <div class="card-header">
+        <div class="card-label" style="border-color:rgba(0,255,170,0.2);color:var(--green);">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--green);"></span>
+          Text-to-Sign Synthesis
+        </div>
+        <h2 style="color:var(--green);">💬 Text → Sign</h2>
+        <p class="card-desc">
+          Natural language from hearing users is transformed into smooth ISL/ASL sign videos for deaf or hard-of-hearing users.
+        </p>
+      </div>
+
+      <div class="steps-toggle-wrap">
+        <div class="steps-toggle green" id="toggle-text" onclick="toggleSteps('text')">
+          <span>📋 Show Text → Sign Steps</span>
+          <span class="toggle-chevron">▼</span>
+        </div>
+      </div>
+
+      <div class="steps-body" id="steps-text">
+        <div class="step">
+          <div class="step-num" style="background:var(--green);">1</div>
+          <div>
+            <div class="step-title">Text / Speech Input</div>
+            <div class="step-desc">The hearing user types or speaks; ASR converts speech into raw text.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:var(--orange);">2</div>
+          <div>
+            <div class="step-title">NLP + Gloss Generation</div>
+            <div class="step-desc">The language module simplifies the sentence and generates gloss tailored for the target sign language.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#22c55e;">3</div>
+          <div>
+            <div class="step-title">Gesture Planning</div>
+            <div class="step-desc">Each gloss token maps to ASL/ISL gestures, creating a sequence of key poses and transitions.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#eab308;">4</div>
+          <div>
+            <div class="step-title">RIFE-Net Interpolation</div>
+            <div class="step-desc">RIFE-Net generates intermediate frames between key poses, producing smooth 60 FPS sign motion without jitter.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#0ea5e9;">5</div>
+          <div>
+            <div class="step-title">Video Rendering</div>
+            <div class="step-desc">Synthesised sign video is rendered in the app's player and can be replayed or slowed down.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#6366f1;">6</div>
+          <div>
+            <div class="step-title">Deaf User View</div>
+            <div class="step-desc">The deaf user watches the final sign animation, completing the text-to-sign communication loop.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BRAIN -->
+  <div class="brain-section">
+    <div class="brain-orb">
+      <div class="brain-label">⚡ Hybrid AI</div>
+      <div class="brain-title">Ensemble Brain</div>
+      <div class="brain-sub">CNN + RFC + LLM + RIFE-Net</div>
+    </div>
+    <p style="font-size:0.83rem;color:var(--muted);max-width:420px;margin:0 auto;">Both pipeline directions share the same intelligent core, enabling consistent bidirectional ASL–ISL translation.</p>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <span class="leg"><span class="leg-dot" style="background:var(--accent);"></span>Vision & Preprocessing</span>
+    <span class="leg"><span class="leg-dot" style="background:var(--orange);"></span>NLP / Gloss / LLM</span>
+    <span class="leg"><span class="leg-dot" style="background:var(--green);"></span>Synthesis & Output</span>
+    <span class="leg"><span class="leg-dot" style="background:var(--pink);"></span>Deaf / HoH Friendly</span>
+  </div>
+
+  <footer>
+    Bidirectional Sign Language Translator — Demo Interface
+  </footer>
+</div>
+
+<script>
+  function showFlow(mode) {
+    const signCard = document.getElementById('card-sign');
+    const textCard = document.getElementById('card-text');
+    const bSign = document.getElementById('btn-sign');
+    const bText = document.getElementById('btn-text');
+    const bBoth = document.getElementById('btn-both');
+    [bSign, bText, bBoth].forEach(b => b.classList.remove('active'));
+
+    if (mode === 'sign') {
+      signCard.style.display = 'block';
+      textCard.style.display = 'none';
+      bSign.classList.add('active');
+    } else if (mode === 'text') {
+      signCard.style.display = 'none';
+      textCard.style.display = 'block';
+      bText.classList.add('active');
+    } else {
+      signCard.style.display = 'block';
+      textCard.style.display = 'block';
+      bBoth.classList.add('active');
+    }
+  }
+
+  function toggleSteps(which) {
+    const body = document.getElementById('steps-' + which);
+    const toggle = document.getElementById('toggle-' + which);
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    toggle.classList.toggle('open', !isOpen);
+    const label = toggle.querySelector('span:first-child');
+    if (which === 'sign') {
+      label.textContent = isOpen ? '📋 Show Sign → Text Steps' : '✕ Hide Steps';
+    } else {
+      label.textContent = isOpen ? '📋 Show Text → Sign Steps' : '✕ Hide Steps';
+    }
+  }
+</script>
+</body>
+</html>

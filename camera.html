@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Live Translation – Sign Translator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020b14;
+      --card: #081828;
+      --border: rgba(0,200,255,0.15);
+      --accent: #00c8ff;
+      --green: #00ffaa;
+      --orange: #ff7b35;
+      --red: #ff4d4d;
+      --text: #e8f4ff;
+      --muted: #6b8fa8;
+      --glow-blue: rgba(0,200,255,0.4);
+      --glow-green: rgba(0,255,170,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 10% 10%, rgba(0,80,160,0.2) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 90% 85%, rgba(0,120,80,0.15) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0 0;
+      margin-bottom: 32px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand-orb {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, var(--accent), var(--green), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 0 20px var(--glow-blue);
+      animation: spin-orb 8s linear infinite;
+    }
+
+    @keyframes spin-orb { to { filter: hue-rotate(360deg); } }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-pill {
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: rgba(6,18,32,0.8);
+      transition: all 0.2s;
+    }
+
+    .nav-pill:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* STATUS BADGE */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(0,200,255,0.06);
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .status-dot.live {
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    /* PAGE HEADER */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .page-header h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .page-header p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-top: 6px;
+      max-width: 480px;
+    }
+
+    /* MAIN LAYOUT */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+    }
+
+    @media (max-width: 860px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* CAMERA CARD */
+    .camera-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .camera-feed {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #000d1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .camera-feed video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      display: none;
+      border-radius: 0;
+    }
+
+    .camera-feed.active video {
+      display: block;
+    }
+
+    .camera-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--muted);
+      padding: 40px;
+      text-align: center;
+    }
+
+    .camera-placeholder.hidden { display: none; }
+
+    .cam-icon {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      border: 2px dashed rgba(0,200,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      background: rgba(0,200,255,0.05);
+    }
+
+    .camera-placeholder h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+
+    .camera-placeholder p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      max-width: 280px;
+    }
+
+    /* Corner overlay when live */
+    .live-corner {
+      position: absolute;
+      top: 12px; right: 12px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid rgba(0,255,170,0.4);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      color: var(--green);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .live-corner.show { display: flex; }
+
+    .live-corner::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: blink 1.5s infinite;
+    }
+
+    /* Detected letter overlay */
+    .letter-overlay {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(0,200,255,0.4);
+      border-radius: 14px;
+      padding: 10px 18px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(8px);
+    }
+
+    .letter-overlay.show { display: flex; }
+
+    .detected-char {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .detected-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* CONTROLS */
+    .controls {
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .cam-btn {
+      padding: 10px 20px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 0.86rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s;
+    }
+
+    .cam-btn.start {
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      color: #020b14;
+      box-shadow: 0 4px 20px rgba(0,200,255,0.3);
+    }
+
+    .cam-btn.start:hover {
+      box-shadow: 0 6px 28px rgba(0,200,255,0.5);
+      transform: translateY(-1px);
+    }
+
+    .cam-btn.stop {
+      background: rgba(255,77,77,0.15);
+      border: 1px solid rgba(255,77,77,0.4);
+      color: var(--red);
+    }
+
+    .cam-btn.stop:hover {
+      background: rgba(255,77,77,0.25);
+    }
+
+    .cam-btn.action {
+      background: rgba(0,200,255,0.08);
+      border: 1px solid rgba(0,200,255,0.25);
+      color: var(--accent);
+    }
+
+    .cam-btn.action:hover { background: rgba(0,200,255,0.15); }
+
+    .cam-btn.refine {
+      background: linear-gradient(135deg, rgba(167,139,250,0.2), rgba(0,200,255,0.1));
+      border: 1px solid rgba(167,139,250,0.4);
+      color: #c4b5fd;
+      margin-left: auto;
+    }
+
+    .cam-btn.refine:hover { background: rgba(167,139,250,0.25); }
+
+    .cam-btn.flip {
+      background: rgba(255,123,53,0.1);
+      border: 1px solid rgba(255,123,53,0.35);
+      color: var(--orange);
+    }
+    .cam-btn.flip:hover { background: rgba(255,123,53,0.2); }
+
+    .ai-badge {
+      font-size: 0.72rem;
+      color: #c4b5fd;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(167,139,250,0.07);
+      border: 1px solid rgba(167,139,250,0.2);
+    }
+
+    /* SIDE PANEL */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .panel-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* Sentence builder */
+    .sentence-box {
+      background: rgba(0,20,40,0.8);
+      border: 1px solid rgba(0,200,255,0.15);
+      border-radius: 12px;
+      padding: 14px;
+      min-height: 80px;
+      font-family: 'DM Mono', monospace;
+      font-size: 1.15rem;
+      color: var(--text);
+      line-height: 1.5;
+      word-break: break-all;
+      margin-bottom: 10px;
+    }
+
+    .sentence-box.empty { color: #2d4860; }
+
+    /* Refined output */
+    .refined-box {
+      background: rgba(0,255,170,0.05);
+      border: 1px solid rgba(0,255,170,0.2);
+      border-radius: 12px;
+      padding: 14px;
+      min-height: 60px;
+      font-size: 0.9rem;
+      color: var(--green);
+      line-height: 1.6;
+      display: none;
+    }
+
+    .refined-box.show { display: block; }
+
+    /* Text to sign input */
+    .tts-input {
+      width: 100%;
+      padding: 10px 13px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,255,170,0.2);
+      background: rgba(0,20,40,0.8);
+      color: var(--text);
+      font-size: 0.86rem;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      resize: vertical;
+      min-height: 80px;
+      transition: border-color 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .tts-input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(0,255,170,0.1);
+    }
+
+    .tts-input::placeholder { color: #2d4860; }
+
+    .canvas { display: none; }
+
+    /* Mode tabs */
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .mode-tab {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0,20,40,0.5);
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .mode-tab.active {
+      border-color: var(--accent);
+      background: rgba(0,200,255,0.1);
+      color: var(--accent);
+    }
+
+    .mode-tab.active.green {
+      border-color: var(--green);
+      background: rgba(0,255,170,0.1);
+      color: var(--green);
+    }
+
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; }
+
+    canvas { display: none; }
+
+    @media (max-width: 600px) {
+      .page-header h1 { font-size: 1.5rem; }
+      .controls { gap: 7px; }
+      .cam-btn { padding: 8px 14px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- NAV -->
+  <nav>
+    <a href="index.html" class="brand">
+      <div class="brand-orb">🤟</div>
+      Sign Translator
+    </a>
+    <div class="nav-right">
+      <div class="status-badge">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Standby</span>
+      </div>
+      <a href="index.html" class="nav-pill">← Workflow</a>
+    </div>
+  </nav>
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div>
+      <h1>🎥 Live Translation Studio</h1>
+      <p>Start the camera to begin real-time sign recognition, or type text below to generate sign output.</p>
+    </div>
+  </div>
+
+  <!-- MODE TABS -->
+  <div class="mode-tabs">
+    <div class="mode-tab active" id="tab-sign" onclick="switchMode('sign')">👋 Sign → Text</div>
+    <div class="mode-tab" id="tab-text" onclick="switchMode('text')">💬 Text → Sign</div>
+  </div>
+
+  <!-- SIGN → TEXT MODE -->
+  <div class="mode-panel active" id="panel-sign">
+    <div class="main-grid">
+
+      <!-- CAMERA -->
+      <div class="camera-card">
+        <div class="camera-feed" id="cameraFeed">
+          <div class="camera-placeholder" id="camPlaceholder">
+            <div class="cam-icon">📷</div>
+            <h3>Camera not started</h3>
+            <p>Click "Start Camera" to begin real-time sign language recognition.</p>
+          </div>
+          <video id="webcam" autoplay playsinline></video>
+          <div class="live-corner" id="liveCorner">LIVE</div>
+          <div class="letter-overlay" id="letterOverlay">
+            <div class="detected-char" id="detectedLetter">?</div>
+            <div>
+              <div class="detected-label">Detected</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="cam-btn start" id="startBtn" onclick="startCapture()">▶ Start Camera</button>
+          <button class="cam-btn stop" id="stopBtn" onclick="stopCapture()" style="display:none;">⏹ Stop</button>
+          <button class="cam-btn flip" id="flipBtn" onclick="flipCamera()" style="display:none;">🔄 Flip</button>
+          <button class="cam-btn action" onclick="addSpace()">Space</button>
+          <button class="cam-btn action" onclick="clearSentence()">Clear</button>
+          <button class="cam-btn refine" onclick="refineSentence()">✨ Refine with LLM</button>
+          <span class="ai-badge" id="aiBadge" style="display:none;">🤖 AI</span>
+        </div>
+      </div>
+
+      <!-- SIDE PANEL -->
+      <div class="side-panel">
+
+        <div class="panel-card">
+          <div class="panel-title">Building Sentence</div>
+          <div class="sentence-box empty" id="sentenceBuffer">
+            Start signing to build a sentence…
+          </div>
+          <div class="refined-box" id="refinedOutput"></div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-title">How it works</div>
+          <div style="font-size:0.8rem;color:var(--muted);line-height:1.7;">
+            <p style="margin-bottom:8px;">1. Point your camera at your signing hand.</p>
+            <p style="margin-bottom:8px;">2. Hold each letter steady for ~1.5s to register it.</p>
+            <p style="margin-bottom:8px;">3. Use Space to add gaps between words.</p>
+            <p>4. Hit <span style="color:#c4b5fd;">✨ Refine</span> for LLM grammar correction.</p>
+          </div>
+        </div>
+
+        <div class="panel-card" style="border-color:rgba(0,200,255,0.2);">
+          <div class="panel-title">Settings</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label style="font-size:0.75rem;color:var(--muted);margin-bottom:4px;display:block;">Sign Language</label>
+              <select id="signLangSel" style="width:100%;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(0,20,40,0.8);color:var(--text);font-size:0.84rem;outline:none;">
+                <option>ASL – American</option>
+                <option>ISL – Indian</option>
+                <option>BSL – British</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- TEXT → SIGN MODE -->
+  <div class="mode-panel" id="panel-text">
+    <div class="main-grid">
+      <div class="camera-card" style="border-color:rgba(0,255,170,0.2);">
+        <div class="camera-feed" id="signPlayerFeed" style="background:#00100a;">
+          <div class="camera-placeholder">
+            <div class="cam-icon" style="border-color:rgba(0,255,170,0.3);background:rgba(0,255,170,0.05);font-size:2.5rem;">🧏</div>
+            <h3>Sign Animation Player</h3>
+            <p>Type or paste text on the right and click Generate to render sign animation.</p>
+          </div>
+        </div>
+        <div class="controls" style="border-color:rgba(0,255,170,0.15);">
+          <div style="font-size:0.78rem;color:var(--muted);">Backend endpoint: <code style="color:var(--green);font-size:0.75rem;">/predict/text_to_sign</code></div>
+        </div>
+      </div>
+
+      <div class="side-panel">
+        <div class="panel-card" style="border-color:rgba(0,255,170,0.2);">
+          <div class="panel-title">Input Text</div>
+          <textarea class="tts-input" id="ttsInput" placeholder="Type a sentence to convert to sign language…"></textarea>
+          <button class="cam-btn start" style="width:100%;justify-content:center;" onclick="generateSign()">
+            Generate Sign Animation →
+          </button>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-title">Pipeline</div>
+          <div style="font-size:0.8rem;color:var(--muted);line-height:1.8;">
+            Text → NLP Gloss → Gesture Planner → RIFE-Net → 60fps Video
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────
+  let stream = null, captureInterval = null;
+  let sentenceBuffer = "", lastLetter = "", sameLetterCount = 0;
+  let currentFacingMode = "user";   // "user" = front, "environment" = back
+  let isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  let aiCallInProgress = false;
+  let frameSkip = 0; // throttle AI calls
+
+  const video     = document.getElementById("webcam");
+  const canvas    = document.getElementById("canvas");
+  const ctx       = canvas.getContext("2d");
+  const letterDisplay = document.getElementById("detectedLetter");
+  const sentenceEl    = document.getElementById("sentenceBuffer");
+  const refinedEl     = document.getElementById("refinedOutput");
+  const statusDot     = document.getElementById("statusDot");
+  const statusText    = document.getElementById("statusText");
+
+  function setStatus(live, label) {
+    statusDot.className = "status-dot" + (live ? " live" : "");
+    statusText.textContent = label;
+  }
+
+  function switchMode(mode) {
+    document.getElementById('tab-sign').className  = 'mode-tab' + (mode==='sign'?' active':'');
+    document.getElementById('tab-text').className  = 'mode-tab' + (mode==='text'?' active green':'');
+    document.getElementById('panel-sign').className = 'mode-panel' + (mode==='sign'?' active':'');
+    document.getElementById('panel-text').className = 'mode-panel' + (mode==='text'?' active':'');
+    if (mode !== 'sign') stopCapture();
+  }
+
+  // ── Camera helpers ──────────────────────────────────────────────────────
+  async function startCapture() {
+    try {
+      // On mobile default to back camera (environment) for better hand framing
+      if (isMobile) currentFacingMode = "environment";
+
+      await openCamera(currentFacingMode);
+
+      document.getElementById("cameraFeed").classList.add("active");
+      document.getElementById("camPlaceholder").classList.add("hidden");
+      document.getElementById("startBtn").style.display = "none";
+      document.getElementById("stopBtn").style.display  = "inline-flex";
+      document.getElementById("flipBtn").style.display  = isMobile ? "inline-flex" : "none";
+      document.getElementById("aiBadge").style.display  = "inline-flex";
+      document.getElementById("liveCorner").classList.add("show");
+      document.getElementById("letterOverlay").classList.add("show");
+      setStatus(true, "Live · AI");
+
+      video.onloadedmetadata = () => {
+        canvas.width  = 320;
+        canvas.height = 320;
+        captureInterval = setInterval(captureAndPredict, 800); // every 0.8s
+      };
+    } catch (err) {
+      alert("Camera error: " + err.message + "\n\nMake sure you are on HTTPS or localhost.");
+    }
+  }
+
+  async function openCamera(facingMode) {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    const constraints = {
+      video: {
+        facingMode: { ideal: facingMode },
+        width:  { ideal: 640 },
+        height: { ideal: 480 }
+      }
+    };
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    // Mirror only front camera
+    video.style.transform = (facingMode === "user") ? "scaleX(-1)" : "scaleX(1)";
+  }
+
+  async function flipCamera() {
+    currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+    await openCamera(currentFacingMode);
+  }
+
+  function stopCapture() {
+    if (captureInterval) { clearInterval(captureInterval); captureInterval = null; }
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    video.srcObject = null;
+
+    document.getElementById("cameraFeed").classList.remove("active");
+    document.getElementById("camPlaceholder").classList.remove("hidden");
+    document.getElementById("startBtn").style.display = "inline-flex";
+    document.getElementById("stopBtn").style.display  = "none";
+    document.getElementById("flipBtn").style.display  = "none";
+    document.getElementById("aiBadge").style.display  = "none";
+    document.getElementById("liveCorner").classList.remove("show");
+    document.getElementById("letterOverlay").classList.remove("show");
+    setStatus(false, "Standby");
+  }
+
+  // ── AI Sign Recognition via Claude ────────────────────────────────────
+  async function captureAndPredict() {
+    if (!stream || aiCallInProgress) return;
+
+    // Draw frame to canvas (mirror front camera)
+    ctx.save();
+    if (currentFacingMode === "user") { ctx.scale(-1, 1); ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height); }
+    else { ctx.drawImage(video, 0, 0, canvas.width, canvas.height); }
+    ctx.restore();
+
+    const base64 = canvas.toDataURL("image/jpeg", 0.75).split(",")[1];
+    const signLang = document.getElementById("signLangSel").value || "ASL – American";
+
+    aiCallInProgress = true;
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 50,
+          messages: [{
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: "image/jpeg", data: base64 }
+              },
+              {
+                type: "text",
+                text: `You are a ${signLang} sign language recognition expert. Look at the hand in this image. If you can see a clear hand sign/gesture that corresponds to a letter (A-Z) or number (0-9) in ${signLang} fingerspelling, respond with ONLY that single character. If no hand is visible or the sign is unclear, respond with exactly: ?`
+              }
+            ]
+          }]
+        })
+      });
+
+      const data = await res.json();
+      const raw = (data.content?.[0]?.text || "?").trim().toUpperCase();
+      // Accept only single letter/digit or ?
+      const letter = /^[A-Z0-9?]$/.test(raw) ? raw : "?";
+      letterDisplay.textContent = letter;
+
+      if (letter !== "?" && letter !== "") {
+        if (letter === lastLetter) {
+          sameLetterCount++;
+          if (sameLetterCount === 2) {  // confirmed after 2 consistent reads
+            sentenceBuffer += letter;
+            updateSentenceDisplay();
+            sameLetterCount = 0; // reset so it doesn't keep adding
+          }
+        } else {
+          lastLetter = letter;
+          sameLetterCount = 1;
+        }
+      }
+    } catch (e) {
+      console.error("AI recognition error:", e);
+      letterDisplay.textContent = "⚠";
+    } finally {
+      aiCallInProgress = false;
+    }
+  }
+
+  // ── Sentence helpers ───────────────────────────────────────────────────
+  function updateSentenceDisplay() {
+    if (sentenceBuffer) {
+      sentenceEl.textContent = sentenceBuffer;
+      sentenceEl.classList.remove("empty");
+    } else {
+      sentenceEl.textContent = "Start signing to build a sentence…";
+      sentenceEl.classList.add("empty");
+    }
+  }
+
+  function addSpace() {
+    sentenceBuffer += " ";
+    lastLetter = ""; sameLetterCount = 0;
+    updateSentenceDisplay();
+  }
+
+  function clearSentence() {
+    sentenceBuffer = "";
+    lastLetter = ""; sameLetterCount = 0;
+    refinedEl.textContent = "";
+    refinedEl.classList.remove("show");
+    updateSentenceDisplay();
+  }
+
+  // ── Refine with Claude AI ──────────────────────────────────────────────
+  async function refineSentence() {
+    if (!sentenceBuffer.trim()) { alert("Nothing to refine yet!"); return; }
+    const btn = document.querySelector(".cam-btn.refine");
+    btn.textContent = "⏳ Refining…";
+    btn.disabled = true;
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 200,
+          messages: [{
+            role: "user",
+            content: `The following text was built letter-by-letter from sign language fingerspelling. Please reconstruct it into proper English words and sentences. Only return the corrected sentence, nothing else.\n\nRaw: "${sentenceBuffer}"`
+          }]
+        })
+      });
+      const data = await res.json();
+      const corrected = data.content?.[0]?.text?.trim() || sentenceBuffer;
+      refinedEl.textContent = "✨ " + corrected;
+      refinedEl.classList.add("show");
+    } catch (e) {
+      alert("Refinement failed: " + e.message);
+    } finally {
+      btn.textContent = "✨ Refine with LLM";
+      btn.disabled = false;
+    }
+  }
+
+  // ── Text → Sign (placeholder) ─────────────────────────────────────────
+  async function generateSign() {
+    const text = document.getElementById("ttsInput").value.trim();
+    if (!text) { alert("Please enter some text first."); return; }
+    alert("Text-to-Sign animation requires the Python backend.\n\nFor demo: your text is ready to be sent to POST /predict/text_to_sign");
+  }
+</script>
+</body>
+</html>
